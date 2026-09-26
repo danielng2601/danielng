@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FR24 → SimBrief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EDE8DC;
+    --panel:#FBF8F0;
+    --panel-edge:#DCD4BF;
+    --ink:#1C2B39;
+    --muted:#5B6B74;
+    --accent:#C7501F;
+    --accent-ink:#FBF8F0;
+    --accent2:#1D6F5C;
+    --rule:#CBC1A9;
+    --hole:#D8CFB8;
+    --input-bg:#FFFFFF;
+    --shadow: 0 1px 0 rgba(28,43,57,0.06);
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0D1116;
+      --panel:#161B22;
+      --panel-edge:#232B34;
+      --ink:#E8EDF2;
+      --muted:#8A97A3;
+      --accent:#E2812B;
+      --accent-ink:#161B22;
+      --accent2:#58C4B0;
+      --rule:#2A323C;
+      --hole:#232B34;
+      --input-bg:#0F141A;
+      --shadow: 0 1px 0 rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0D1116;
+    --panel:#161B22;
+    --panel-edge:#232B34;
+    --ink:#E8EDF2;
+    --muted:#8A97A3;
+    --accent:#E2812B;
+    --accent-ink:#161B22;
+    --accent2:#58C4B0;
+    --rule:#2A323C;
+    --hole:#232B34;
+    --input-bg:#0F141A;
+    --shadow: 0 1px 0 rgba(0,0,0,0.35);
+  }
+  html{ scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html,body{ height:100%; }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(28,43,57,0.05) 1px, transparent 1px);
+    background-size: 14px 14px;
+    color:var(--ink);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100%;
+    display:flex;
+    justify-content:center;
+  }
+  .wrap{
+    width:100%;
+    max-width:720px;
+    padding:32px 18px 64px;
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  h1{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:0.5px;
+    margin:0;
+  }
+  h1 small{
+    display:block;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:400;
+    font-size:13px;
+    color:var(--muted);
+    letter-spacing:0;
+    margin-top:4px;
+  }
+  .themebtn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    background:transparent;
+    border:1px solid var(--rule);
+    border-radius:3px;
+    padding:5px 9px;
+    cursor:pointer;
+  }
+  .themebtn:hover{ color:var(--ink); border-color:var(--ink); }
+
+  .board{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .strip{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:4px;
+    box-shadow:var(--shadow);
+    display:flex;
+    overflow:hidden;
+  }
+  .tab{
+    flex:0 0 34px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    writing-mode:vertical-rl;
+    text-orientation:mixed;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:1.5px;
+    color:var(--accent-ink);
+    background:var(--accent);
+    padding:10px 0;
+    position:relative;
+  }
+  .tab.alt{ background:var(--accent2); }
+  .tab::before{
+    content:"";
+    position:absolute;
+    top:8px;
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:var(--hole);
+    left:50%;
+    transform:translateX(-50%);
+  }
+  .stripbody{
+    flex:1;
+    padding:14px 16px 16px;
+    min-width:0;
+  }
+  .stripbody h2{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 10px;
+  }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .field{ display:flex; flex-direction:column; gap:4px; flex:1 1 120px; min-width:100px; }
+  .field.wide{ flex-basis:100%; }
+  .field label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.6px;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .field input, .field select{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14.5px;
+    font-weight:500;
+    color:var(--ink);
+    background:var(--input-bg);
+    border:1px solid var(--rule);
+    border-radius:3px;
+    padding:8px 9px;
+    letter-spacing:0.5px;
+    width:100%;
+    min-width:0;
+  }
+  .field input::placeholder{ color:var(--muted); opacity:0.6; font-weight:400; }
+  .field input.guessed{
+    border-color:var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .field input:focus, .field select:focus{
+    outline:2px solid var(--accent2);
+    outline-offset:1px;
+  }
+  .linkrow{ display:flex; gap:8px; flex-wrap:wrap; }
+  .linkrow input{ flex:1 1 220px; }
+  .btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.4px;
+    border:1px solid var(--ink);
+    background:transparent;
+    color:var(--ink);
+    padding:8px 14px;
+    border-radius:3px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn:hover{ background:var(--ink); color:var(--panel); }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .btn:disabled:hover{ background:transparent; color:var(--ink); }
+
+  .readout{
+    margin-top:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--accent2);
+    min-height:16px;
+    letter-spacing:0.4px;
+  }
+  .readout.warn{ color:var(--accent); }
+  .readout.loading{ color:var(--accent); }
+
+  .note{
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.55;
+    margin-top:10px;
+  }
+  .note code{
+    font-family:'IBM Plex Mono', monospace;
+    background:var(--bg);
+    padding:1px 4px;
+    border-radius:2px;
+    font-size:11.5px;
+  }
+
+  .generate{
+    background:var(--ink);
+    border:none;
+    padding:0;
+  }
+  .generate .stripbody{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+    padding:16px;
+  }
+  .generate .tab{ background:var(--ink); }
+  .genbtn{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.5px;
+    background:var(--accent);
+    color:var(--accent-ink);
+    border:none;
+    padding:12px 20px;
+    border-radius:3px;
+    cursor:pointer;
+    flex:1 1 220px;
+  }
+  .genbtn:hover{ filter:brightness(1.06); }
+  .genbtn:active{ filter:brightness(0.95); }
+  .genhint{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:12px;
+    color:#AEB8C2;
+    flex:1 1 100%;
+  }
+
+  .out{
+    display:none;
+    margin-top:6px;
+  }
+  .out.show{ display:block; }
+  .outlink{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--accent2);
+    word-break:break-all;
+    background:var(--input-bg);
+    border:1px solid var(--rule);
+    border-radius:3px;
+    padding:8px 10px;
+    display:block;
+    margin-top:8px;
+    text-decoration:none;
+  }
+  .outlink:hover{ text-decoration:underline; }
+  .copybtn{
+    margin-top:8px;
+  }
+
+  footer{
+    margin-top:26px;
+    font-size:11.5px;
+    color:var(--muted);
+    line-height:1.6;
+    text-align:center;
+  }
+  footer a{ color:var(--accent2); }
+
+  @media (max-width:420px){
+    .tab{ flex-basis:26px; font-size:10px; }
+    h1{ font-size:19px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>FR24 → SIMBRIEF<small>Dán liên kết chuyến bay FlightRadar24, điền vài ô còn thiếu, mở OFP</small></h1>
+    <button class="themebtn" id="themeToggle" type="button">Chế độ: hệ thống</button>
+  </header>
+
+  <div class="board">
+
+    <div class="strip">
+      <div class="tab">FR24 / FA</div>
+      <div class="stripbody">
+        <h2>Liên kết chuyến bay</h2>
+        <div class="linkrow">
+          <input type="text" id="fr24url" placeholder="flightradar24.com/VJC123/3edadac6  hoặc  flightaware.com/live/flight/VJC123" autocomplete="off">
+          <button class="btn" id="parseBtn" type="button">Phân tích</button>
+          <button class="btn" id="openBtn" type="button" disabled>Mở trang gốc ↗</button>
+        </div>
+        <div class="readout" id="parseReadout"></div>
+        
+        <!-- Ẩn ô nhập proxy riêng, điền giá trị mặc định vào Worker của bạn -->
+        <div class="row" style="display:none;">
+          <div class="field wide">
+            <label for="proxyUrl">Proxy riêng</label>
+            <input type="text" id="proxyUrl" value="https://fr24-proxy.nguyenquangminhdang.workers.dev" autocomplete="off" style="text-transform:none">
+          </div>
+        </div>
+
+        <div class="note">
+          Nhận cả link <b>FlightRadar24</b> lẫn <b>FlightAware</b> (kể cả link <code>/history/...</code> có sẵn sân bay đi/đến). Công cụ tự động gọi nguồn dữ liệu qua Cloudflare Worker riêng, tự điền <b>sân bay đi/đến, loại tàu bay và số đăng ký</b>. Trường hợp nào cũng có thể sửa/điền tay các ô bên dưới.
+        </div>
+      </div>
+    </div>
+
+    <div class="strip">
+      <div class="tab alt">CHUYẾN BAY</div>
+      <div class="stripbody">
+        <h2>Thông tin chuyến bay</h2>
+        <div class="row">
+          <div class="field">
+            <label for="orig">Sân bay đi (ICAO)</label>
+            <input type="text" id="orig" maxlength="4" placeholder="vd: VVNB" style="text-transform:uppercase">
+          </div>
+          <div class="field">
+            <label for="dest">Sân bay đến (ICAO)</label>
+            <input type="text" id="dest" maxlength="4" placeholder="vd: VVTS" style="text-transform:uppercase">
+          </div>
+          <div class="field">
+            <label for="actype">Loại tàu bay</label>
+            <input type="text" id="actype" list="actypes" maxlength="4" placeholder="vd: A321" style="text-transform:uppercase">
+            <datalist id="actypes">
+              <option value="A319"><option value="A320"><option value="A21N">
+              <option value="A20N"><option value="A339"><option value="A343">
+              <option value="A359"><option value="A35K"><option value="A388">
+              <option value="B737"><option value="B738"><option value="B739">
+              <option value="B38M"><option value="B39M"><option value="B744">
+              <option value="B748"><option value="B752"><option value="B753">
+              <option value="B762"><option value="B763"><option value="B772">
+              <option value="B773"><option value="B77L"><option value="B77W">
+              <option value="B788"><option value="B789"><option value="B78X">
+              <option value="E170"><option value="E190"><option value="E195">
+              <option value="CRJ9"><option value="DH8D"><option value="AT76">
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="airline">Hãng bay (ICAO)</label>
+            <input type="text" id="airline" maxlength="3" placeholder="vd: VJC" style="text-transform:uppercase">
+          </div>
+          <div class="field">
+            <label for="fltnum">Số hiệu</label>
+            <input type="text" id="fltnum" placeholder="vd: 123">
+          </div>
+          <div class="field">
+            <label for="reg">Số đăng ký</label>
+            <input type="text" id="reg" placeholder="vd: VN-A123" style="text-transform:uppercase">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="strip">
+      <div class="tab">OFP</div>
+      <div class="stripbody">
+        <h2>Tùy chọn OFP (không bắt buộc)</h2>
+        <div class="row">
+          <div class="field">
+            <label for="pid">SimBrief Pilot ID</label>
+            <input type="text" id="pid" placeholder="vd: 12345">
+          </div>
+          <div class="field">
+            <label for="altn">Sân bay dự bị</label>
+            <input type="text" id="altn" maxlength="4" placeholder="vd: VVCT" style="text-transform:uppercase">
+          </div>
+          <div class="field">
+            <label for="ci">Cost Index</label>
+            <input type="text" id="ci" placeholder="vd: 25">
+          </div>
+          <div class="field">
+            <label for="fl">Mực bay (FL)</label>
+            <input type="text" id="fl" placeholder="vd: 350">
+          </div>
+          <div class="field">
+            <label for="pax">Hành khách</label>
+            <input type="text" id="pax" placeholder="vd: 150">
+          </div>
+        </div>
+        <div class="note">Pilot ID được lưu trên trình duyệt này cho lần sau. Để trống ô nào cũng được — SimBrief sẽ tự tính giá trị mặc định.</div>
+      </div>
+    </div>
+
+    <div class="strip generate">
+      <div class="tab">GO</div>
+      <div class="stripbody">
+        <span class="genhint">Mở trang Dispatch của SimBrief với các thông tin trên đã điền sẵn — bạn xem lại và bấm Generate bên đó để ra OFP đầy đủ.</span>
+        <button class="genbtn" id="genBtn" type="button">Tạo OFP trên SimBrief →</button>
+      </div>
+    </div>
+
+    <div class="out" id="out">
+      <a class="outlink" id="outlink" target="_blank" rel="noopener"></a>
+      <button class="btn copybtn" id="copyBtn" type="button">Sao chép liên kết</button>
+    </div>
+
+  </div>
+
+  <footer>
+    Dữ liệu chuyến bay do bạn nhập từ FlightRadar24 · OFP được tạo bởi SimBrief<br>
+    Không có Pilot ID? SimBrief vẫn tạo OFP với thiết lập mặc định.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+
+  // ---- theme toggle ----
+  var themeBtn = $('themeToggle');
+  var modes = ['system','light','dark'];
+  var labels = {system:'Chế độ: hệ thống', light:'Chế độ: sáng', dark:'Chế độ: tối'};
+  var mode = 'system';
+  try{
+    var saved = localStorage.getItem('fr24sb_theme');
+    if(saved && modes.indexOf(saved) !== -1) mode = saved;
+  }catch(e){}
+  function applyTheme(){
+    if(mode === 'system'){ document.documentElement.removeAttribute('data-theme'); }
+    else{ document.documentElement.setAttribute('data-theme', mode); }
+    themeBtn.textContent = labels[mode];
+  }
+  applyTheme();
+  themeBtn.addEventListener('click', function(){
+    var i = modes.indexOf(mode);
+    mode = modes[(i+1) % modes.length];
+    applyTheme();
+    try{ localStorage.setItem('fr24sb_theme', mode); }catch(e){}
+  });
+
+  // ---- pilot id persistence ----
+  try{
+    var savedPid = localStorage.getItem('fr24sb_pid');
+    if(savedPid) $('pid').value = savedPid;
+  }catch(e){}
+
+  // ---- FR24 link parsing ----
+  var lastUrl = '';
+  function parseFR24(raw){
+    if(!raw) return null;
+    var idMatch = raw.match(/#([a-f0-9]{5,8})(?:$|[^a-z0-9])/i) || raw.match(/\/([a-f0-9]{5,8})(?:[\/?#]|$)/i);
+    if(!idMatch) return null;
+    var flightId = idMatch[1].toLowerCase();
+
+    var csMatch = raw.match(/flights\/([a-z]{2,3}\d[\da-z]{0,5})/i);
+    if(!csMatch){
+      var segs = raw.split(/[\/#?]/);
+      for(var i = segs.length - 1; i >= 0; i--){
+        var mm = segs[i].match(/(?:^|-)([a-z]{2,3}\d[\da-z]{0,5})$/i);
+        if(mm){ csMatch = [null, mm[1]]; break; }
+      }
+    }
+    if(!csMatch) return null;
+    return { callsign: csMatch[1].toUpperCase(), flightId: flightId };
+  }
+
+  function parseFlightAware(raw){
+    if(!/flightaware\.com/i.test(raw)) return null;
+
+    var pageUrl = raw.trim();
+    if(!/^https?:\/\//i.test(pageUrl)) pageUrl = 'https://' + pageUrl.replace(/^www\./i, '');
+    pageUrl = pageUrl.replace(/^https?:\/\/(?:www\.)?/i, 'https://www.');
+
+    var ident = null, origin = null, dest = null;
+
+    var histMatch = raw.match(/flight\/([a-z0-9]{2,8})\/history\/(\d{8})\/(\d{3,4}z)\/([a-z]{3,4})\/([a-z]{3,4})/i);
+    if(histMatch){
+      ident = histMatch[1].toUpperCase();
+      if(histMatch[4].length === 4) origin = histMatch[4].toUpperCase();
+      if(histMatch[5].length === 4) dest = histMatch[5].toUpperCase();
+    }else{
+      var idMatch = raw.match(/flight\/id\/([a-z0-9]+)-/i);
+      if(idMatch){
+        ident = idMatch[1].toUpperCase();
+      }else{
+        var simple = raw.match(/flight\/([a-z0-9]{2,8})(?:[\/?#]|$)/i);
+        if(simple) ident = simple[1].toUpperCase();
+      }
+    }
+    if(!ident) return null;
+    return { ident: ident, origin: origin, dest: dest, pageUrl: pageUrl };
+  }
+
+  function splitCallsign(cs){
+    var m = cs.match(/^([A-Z]{2,3})(\d[\dA-Z]*)$/);
+    if(m) return { airline:m[1], num:m[2] };
+    return null;
+  }
+
+  function clearGuessed(){
+    ['orig','dest','actype','airline','fltnum','reg'].forEach(function(id){
+      var el = $(id);
+      if(el.classList.contains('guessed')){
+        el.value = '';
+        el.classList.remove('guessed');
+      }
+    });
+  }
+
+  function setGuess(id, value){
+    var el = $(id);
+    if(!value || el.value.trim()) return;
+    el.value = String(value).toUpperCase();
+    el.classList.add('guessed');
+  }
+
+  ['orig','dest','actype','airline','fltnum','reg'].forEach(function(id){
+    $(id).addEventListener('input', function(){ this.classList.remove('guessed'); });
+  });
+
+  async function getJson(url){
+    var res = await fetch(url, {headers:{'Accept':'application/json'}});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  }
+
+  function withTimeout(promise, ms){
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var timer = setTimeout(function(){
+        if(!done){ done = true; reject(new Error('timeout')); }
+      }, ms);
+      promise.then(function(v){
+        if(!done){ done = true; clearTimeout(timer); resolve(v); }
+      }, function(e){
+        if(!done){ done = true; clearTimeout(timer); reject(e); }
+      });
+    });
+  }
+
+  var PUBLIC_RELAYS = [
+    function(u){ return u; },
+    function(u){ return 'https://corsproxy.io/?url=' + encodeURIComponent(u); },
+    function(u){ return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); },
+    function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
+    function(u){ return 'https://thingproxy.freeboard.io/fetch/' + u; }
+  ];
+
+  function getRelays(){
+    var custom = ($('proxyUrl').value || '').trim().replace(/\/$/, '');
+    if(!custom) return PUBLIC_RELAYS;
+    return [function(u){ return custom + '/?url=' + encodeURIComponent(u); }].concat(PUBLIC_RELAYS);
+  }
+
+  async function getJsonRobust(targetUrl, onAttempt){
+    var lastErr = null;
+    var relays = getRelays();
+    for(var i = 0; i < relays.length; i++){
+      if(onAttempt) onAttempt(i, relays.length);
+      try{
+        var data = await withTimeout(getJson(relays[i](targetUrl)), 7000);
+        if(data) return data;
+      }catch(e){ lastErr = e; }
+    }
+    throw lastErr || new Error('Tất cả nguồn đều thất bại');
+  }
+
+  async function fetchText(url){
+    var res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.text();
+  }
+
+  async function getTextRobust(targetUrl, onAttempt){
+    var lastErr = null;
+    var relays = getRelays();
+    for(var i = 0; i < relays.length; i++){
+      if(onAttempt) onAttempt(i, relays.length);
+      try{
+        var text = await withTimeout(fetchText(relays[i](targetUrl)), 9000);
+        if(text) return text;
+      }catch(e){ lastErr = e; }
+    }
+    throw lastErr || new Error('Tất cả nguồn đều thất bại');
+  }
+
+  function extractTrackpoll(html){
+    var marker = 'trackpollBootstrap = ';
+    var s = html.indexOf(marker);
+    if(s === -1) return null;
+    var i = html.indexOf('{', s);
+    if(i === -1) return null;
+    var depth = 0, end = -1;
+    for(var k = i; k < html.length; k++){
+      var c = html[k];
+      if(c === '{') depth++;
+      else if(c === '}'){ depth--; if(depth === 0){ end = k + 1; break; } }
+    }
+    if(end === -1) return null;
+    try{ return JSON.parse(html.slice(i, end)); }catch(e){ return null; }
+  }
+
+  async function lookupFlightAware(parsed){
+    var ro = $('parseReadout');
+    var found = [];
+
+    if(parsed.origin){ setGuess('orig', parsed.origin); found.push('đi ' + parsed.origin); }
+    if(parsed.dest){ setGuess('dest', parsed.dest); found.push('đến ' + parsed.dest); }
+
+    var boot = null;
+    try{
+      var html = await getTextRobust(parsed.pageUrl, function(i, total){
+        ro.textContent = 'Đang tải trang FlightAware… (nguồn ' + (i+1) + '/' + total + ')';
+      });
+      boot = extractTrackpoll(html);
+    }catch(e){ boot = null; }
+
+    var identForSplit = parsed.ident;
+
+    if(boot && boot.flights){
+      var keys = Object.keys(boot.flights);
+      var fl = keys.length ? boot.flights[keys[0]] : null;
+      if(fl){
+        if(fl.ident) identForSplit = fl.ident;
+        var o = fl.origin, d = fl.destination, ac = fl.aircraft;
+        if(o && o.icao && found.indexOf('đi ' + o.icao) === -1){ setGuess('orig', o.icao); found.push('đi ' + o.icao); }
+        if(d && d.icao && found.indexOf('đến ' + d.icao) === -1){ setGuess('dest', d.icao); found.push('đến ' + d.icao); }
+        if(ac && ac.type){ setGuess('actype', ac.type); found.push('tàu ' + ac.type); }
+        if(ac && ac.tail){ setGuess('reg', ac.tail); found.push(ac.tail); }
+      }
+    }
+
+    var split = splitCallsign(identForSplit);
+    if(split){ setGuess('airline', split.airline); setGuess('fltnum', split.num); }
+
+    ro.classList.remove('loading');
+    if(found.length){
+      ro.classList.remove('warn');
+      ro.textContent = 'Đã tự điền: ' + found.join(' · ');
+    }else{
+      ro.classList.add('warn');
+      ro.textContent = 'Không lấy được dữ liệu từ FlightAware cho ' + parsed.ident + '. Bạn có thể điền tay các ô bên dưới.';
+    }
+  }
+
+  async function lookupFlightData(parsed){
+    var ro = $('parseReadout');
+    var found = [];
+    var usedFallback = false;
+
+    var cd = null;
+    try{
+      cd = await getJsonRobust(
+        'https://data-live.flightradar24.com/clickhandler/?version=1.5&flight=' + encodeURIComponent(parsed.flightId),
+        function(i, total){ ro.textContent = 'Đang tra dữ liệu chuyến bay… (nguồn ' + (i+1) + '/' + total + ')'; }
+      );
+      if(!cd || (!cd.identification && !cd.aircraft && !cd.airport)) cd = null;
+    }catch(e){ cd = null; }
+
+    var callsignForSplit = parsed.callsign;
+
+    if(cd){
+      var idn = cd.identification || {};
+      var acf = cd.aircraft || {};
+      var awl = cd.airline || {};
+      var apt = cd.airport || {};
+      var origin = (apt.origin && apt.origin.code && (apt.origin.code.icao || apt.origin.code.iata)) || apt.origin;
+      var dest = (apt.destination && apt.destination.code && (apt.destination.code.icao || apt.destination.code.iata)) || apt.destination;
+      var actype = (acf.model && (acf.model.code || acf.model.text)) || acf.code;
+      var reg = acf.registration || acf.reg;
+      var airlineIcao = (awl.code && (awl.code.icao || awl.code.iata)) || awl.icao;
+
+      if(typeof origin !== 'string') origin = null;
+      if(typeof dest !== 'string') dest = null;
+
+      if(idn.callsign) callsignForSplit = idn.callsign;
+
+      setGuess('orig', origin);
+      setGuess('dest', dest);
+      setGuess('actype', actype);
+      setGuess('reg', reg);
+      setGuess('airline', airlineIcao);
+
+      if(origin) found.push('đi ' + origin);
+      if(dest) found.push('đến ' + dest);
+      if(actype) found.push('tàu ' + actype);
+      if(reg) found.push(reg);
+    }
+
+    if(found.length < 2){
+      try{
+        var rr = await withTimeout(getJson('https://api.adsbdb.com/v0/callsign/' + encodeURIComponent(parsed.callsign)), 7000);
+        var route = rr && rr.response && rr.response.flightroute;
+        if(route){
+          var o2 = route.origin && route.origin.icao_code;
+          var d2 = route.destination && route.destination.icao_code;
+          var a2 = route.airline && route.airline.icao;
+          setGuess('orig', o2);
+          setGuess('dest', d2);
+          setGuess('airline', a2);
+          if(o2 && found.indexOf('đi ' + o2) === -1) found.push('đi ' + o2);
+          if(d2 && found.indexOf('đến ' + d2) === -1) found.push('đến ' + d2);
+          usedFallback = true;
+        }
+      }catch(e){}
+    }
+
+    var split = splitCallsign(callsignForSplit) || splitCallsign(parsed.callsign);
+    if(split){
+      setGuess('airline', split.airline);
+      setGuess('fltnum', split.num);
+    }
+
+    ro.classList.remove('loading');
+    if(found.length){
+      ro.classList.remove('warn');
+      ro.textContent = (usedFallback ? 'Đã tự điền (nguồn dự phòng): ' : 'Đã tự điền: ') + found.join(' · ');
+    }else{
+      ro.classList.add('warn');
+      ro.textContent = 'Không lấy được dữ liệu tự động cho chuyến ' + parsed.callsign + '. Bạn có thể điền tay các ô bên dưới.';
+    }
+  }
+
+  var lastParsedKey = '';
+  $('parseBtn').addEventListener('click', async function(){
+    var raw = $('fr24url').value.trim();
+    var ro = $('parseReadout');
+
+    var parsedFA = parseFlightAware(raw);
+    var parsed = parsedFA ? null : parseFR24(raw);
+
+    if(!parsedFA && !parsed){
+      ro.classList.remove('loading');
+      ro.classList.add('warn');
+      ro.textContent = raw
+        ? 'Không nhận diện được liên kết — dán URL chuyến bay từ flightradar24.com hoặc flightaware.com'
+        : 'Dán liên kết FR24 hoặc FlightAware trước đã.';
+      $('openBtn').disabled = true;
+      return;
+    }
+
+    var key = parsedFA ? ('FA#' + parsedFA.ident + '#' + parsedFA.origin + parsedFA.dest) : (parsed.callsign + '#' + parsed.flightId);
+    if(key !== lastParsedKey){
+      clearGuessed();
+      lastParsedKey = key;
+    }
+
+    ro.classList.remove('warn');
+    ro.classList.add('loading');
+    ro.textContent = 'Đang tra dữ liệu chuyến bay…';
+    lastUrl = parsedFA ? parsedFA.pageUrl : (raw.match(/^https?:\/\//i) ? raw : 'https://www.' + raw.replace(/^www\./,''));
+    $('openBtn').disabled = false;
+
+    try{
+      if(parsedFA) await lookupFlightAware(parsedFA);
+      else await lookupFlightData(parsed);
+    }catch(e){
+      ro.classList.remove('loading');
+      ro.classList.add('warn');
+      ro.textContent = 'Không thể tra dữ liệu tự động. Bạn có thể điền các ô bên dưới bằng tay.';
+    }
+  });
+
+  $('openBtn').addEventListener('click', function(){
+    if(lastUrl) window.open(lastUrl, '_blank', 'noopener');
+  });
+
+  // ---- generate SimBrief dispatch link ----
+  function up(v){ return (v||'').trim().toUpperCase(); }
+  function tr(v){ return (v||'').trim(); }
+
+  $('genBtn').addEventListener('click', function(){
+    var params = {
+      orig: up($('orig').value),
+      dest: up($('dest').value),
+      type: up($('actype').value),
+      airline: up($('airline').value),
+      fltnum: tr($('fltnum').value),
+      reg: up($('reg').value),
+      pid: tr($('pid').value),
+      altn: up($('altn').value),
+      civalue: tr($('ci').value),
+      fl: tr($('fl').value),
+      pax: tr($('pax').value)
+    };
+
+    try{
+      if(params.pid) localStorage.setItem('fr24sb_pid', params.pid);
+    }catch(e){}
+
+    var ro = $('parseReadout');
+    if(!params.orig || !params.dest){
+      ro.classList.add('warn');
+      ro.textContent = 'Nên điền sân bay đi và đến trước khi tạo OFP — thiếu thì SimBrief sẽ để trống, bạn phải tự chọn bên đó.';
+    }
+
+    var qs = [];
+    for(var k in params){
+      if(params[k]) qs.push(k + '=' + encodeURIComponent(params[k]));
+    }
+    var url = 'https://dispatch.simbrief.com/options/custom' + (qs.length ? ('?' + qs.join('&')) : '');
+
+    var out = $('out');
+    var link = $('outlink');
+    link.href = url;
+    link.textContent = url;
+    out.classList.add('show');
+
+    window.open(url, '_blank', 'noopener');
+  });
+
+  $('copyBtn').addEventListener('click', function(){
+    var url = $('outlink').href;
+    if(!url) return;
+    var done = function(){
+      var btn = $('copyBtn');
+      var old = btn.textContent;
+      btn.textContent = 'Đã sao chép ✓';
+      setTimeout(function(){ btn.textContent = old; }, 1600);
+    };
+    try{
+      navigator.clipboard.writeText(url).then(done).catch(function(){ fallbackCopy(url, done); });
+    }catch(e){ fallbackCopy(url, done); }
+  });
+  function fallbackCopy(text, cb){
+    try{
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      cb();
+    }catch(e){}
+  }
+
+  // auto-parse on paste
+  $('fr24url').addEventListener('paste', function(){
+    setTimeout(function(){ $('parseBtn').click(); }, 30);
+  });
+})();
+</script>
+</body>
+</html>
